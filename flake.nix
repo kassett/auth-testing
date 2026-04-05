@@ -24,16 +24,19 @@
             });
     in
     {
-      devShells = forAllSystems ({ pkgs }:
-        {
-          default = pkgs.mkShell {
-            packages = with pkgs; [
-              kubernetes-helm
-              k3d
-              kubectl
-              helmfile
-            ];
-          };
-        });
+      devShells = forAllSystems ({ pkgs }: {
+        default = pkgs.mkShell {
+          packages = with pkgs; [
+            (wrapHelm kubernetes-helm {
+              plugins = with kubernetes-helmPlugins; [
+                helm-diff
+              ];
+            })
+            k3d
+            kubectl
+            helmfile
+          ];
+        };
+      });
     };
 }
