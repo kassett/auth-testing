@@ -31,7 +31,7 @@
               kubernetes-helm
               k3d
               kubectl
-              kubernetes-helmfile
+              helmfile
             ];
           };
         });
