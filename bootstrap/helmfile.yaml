@@ -1,0 +1,203 @@
+helmDefaults:
+  wait: true
+  timeout: 600
+  createNamespace: true
+
+repositories:
+  - name: bedag
+    url: https://bedag.github.io/helm-charts
+  - name: external-dns
+    url: https://kubernetes-sigs.github.io/external-dns/
+
+releases:
+  - name: cert-manager
+    namespace: cert-manager
+    chart: oci://quay.io/jetstack/charts/cert-manager
+    version: v1.20.0
+    values:
+      - crds:
+          enabled: true
+        prometheus:
+          enabled: false
+
+  - name: envoy-gateway
+    namespace: envoy-gateway-system
+    chart: oci://docker.io/envoyproxy/gateway-helm
+    version: v1.7.1
+    values:
+      - config:
+          envoyGateway:
+            provider:
+              type: Kubernetes
+
+  - name: gateway-class
+    namespace: envoy-gateway-system
+    chart: bedag/raw
+    version: 2.0.0
+    disableValidation: true
+    disableValidationOnInstall: true
+    disableOpenAPIValidation: true
+    needs:
+      - envoy-gateway-system/envoy-gateway
+    values:
+      - resources:
+          - apiVersion: gateway.networking.k8s.io/v1
+            kind: GatewayClass
+            metadata:
+              name: envoy-gateway
+            spec:
+              controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+  - name: local-pki
+    namespace: cert-manager
+    chart: bedag/raw
+    version: 2.0.0
+    disableValidation: true
+    disableValidationOnInstall: true
+    disableOpenAPIValidation: true
+    needs:
+      - cert-manager/cert-manager
+    values:
+      - resources:
+          - apiVersion: cert-manager.io/v1
+            kind: ClusterIssuer
+            metadata:
+              name: local-selfsigned
+            spec:
+              selfSigned: {}
+
+          - apiVersion: cert-manager.io/v1
+            kind: Certificate
+            metadata:
+              name: local-root-ca
+              namespace: cert-manager
+            spec:
+              isCA: true
+              commonName: local-root-ca
+              secretName: local-root-ca-secret
+              privateKey:
+                algorithm: RSA
+                size: 2048
+              issuerRef:
+                name: local-selfsigned
+                kind: ClusterIssuer
+
+          - apiVersion: cert-manager.io/v1
+            kind: ClusterIssuer
+            metadata:
+              name: local-ca
+            spec:
+              ca:
+                secretName: local-root-ca-secret
+
+          - apiVersion: cert-manager.io/v1
+            kind: Certificate
+            metadata:
+              name: wildcard-kassett-test
+              namespace: envoy-gateway-system
+            spec:
+              secretName: wildcard-kassett-test-tls
+              dnsNames:
+                - "*.kassett.test"
+              issuerRef:
+                name: local-ca
+                kind: ClusterIssuer
+
+  - name: edge-gateway
+    namespace: envoy-gateway-system
+    chart: bedag/raw
+    version: 2.0.0
+    disableValidation: true
+    disableValidationOnInstall: true
+    disableOpenAPIValidation: true
+    needs:
+      - envoy-gateway-system/envoy-gateway
+      - envoy-gateway-system/gateway-class
+      - cert-manager/local-pki
+    values:
+      - resources:
+          - apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: edge
+              namespace: envoy-gateway-system
+            spec:
+              gatewayClassName: envoy-gateway
+              listeners:
+                - name: https
+                  protocol: HTTPS
+                  port: 443
+                  hostname: "*.kassett.test"
+                  tls:
+                    mode: Terminate
+                    certificateRefs:
+                      - kind: Secret
+                        name: wildcard-kassett-test-tls
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+
+  - name: httpbin
+    namespace: demo
+    chart: bedag/raw
+    version: 2.0.0
+    disableValidation: true
+    disableValidationOnInstall: true
+    disableOpenAPIValidation: true
+    needs:
+      - envoy-gateway-system/edge-gateway
+    values:
+      - resources:
+          - apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: httpbin
+              namespace: demo
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: httpbin
+              template:
+                metadata:
+                  labels:
+                    app: httpbin
+                spec:
+                  containers:
+                    - name: httpbin
+                      image: kennethreitz/httpbin
+                      ports:
+                        - containerPort: 80
+
+          - apiVersion: v1
+            kind: Service
+            metadata:
+              name: httpbin
+              namespace: demo
+            spec:
+              selector:
+                app: httpbin
+              ports:
+                - protocol: TCP
+                  port: 80
+                  targetPort: 80
+
+          - apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: httpbin
+              namespace: demo
+            spec:
+              parentRefs:
+                - name: edge
+                  namespace: envoy-gateway-system
+              hostnames:
+                - httpbin.kassett.test
+              rules:
+                - matches:
+                    - path:
+                        type: PathPrefix
+                        value: /
+                  backendRefs:
+                    - name: httpbin
+                      port: 80

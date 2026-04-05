@@ -1,0 +1,16 @@
+$ORIGIN kassett.test.
+$TTL 300
+
+@       IN SOA ns1.kassett.test. hostmaster.kassett.test. (
+            2026040501 ; serial
+            3600       ; refresh
+            600        ; retry
+            86400      ; expire
+            300 )      ; minimum
+
+        IN NS  ns1.kassett.test.
+
+ns1     IN A   127.0.0.1
+
+; wildcard: everything → localhost
+*       IN A   127.0.0.1
