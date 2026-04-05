@@ -1,14 +1,14 @@
-$ORIGIN kassett.test.
+$ORIGIN autheval.test.
 $TTL 300
 
-@       IN SOA ns1.kassett.test. hostmaster.kassett.test. (
+@       IN SOA ns1.autheval.test. hostmaster.autheval.test. (
             2026040501 ; serial
             3600       ; refresh
             600        ; retry
             86400      ; expire
             300 )      ; minimum
 
-        IN NS  ns1.kassett.test.
+        IN NS  ns1.autheval.test.
 
 ns1     IN A   127.0.0.1
 

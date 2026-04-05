@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-kassett.test}"
+DOMAIN="${DOMAIN:-autheval.test}"
 RESOLVER_DIR="/etc/resolver"
 RESOLVER_FILE="${RESOLVER_DIR}/${DOMAIN}"
 CA_SECRET_NAMESPACE="${CA_SECRET_NAMESPACE:-cert-manager}"

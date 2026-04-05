@@ -1,5 +1,5 @@
-kassett.test:53 {
-    file /zones/db.kassett.test
+autheval.test:53 {
+    file /zones/db.autheval.test
     log
     errors
 }

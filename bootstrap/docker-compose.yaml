@@ -5,7 +5,7 @@ services:
     command: -conf /Corefile
     volumes:
       - ./Corefile:/Corefile:ro
-      - ./db.kassett.test:/zones/db.kassett.test:ro
+      - ./db.autheval.test:/zones/db.autheval.test:ro
     ports:
       - "53:53/tcp"
       - "53:53/udp"

@@ -93,12 +93,12 @@ releases:
           - apiVersion: cert-manager.io/v1
             kind: Certificate
             metadata:
-              name: wildcard-kassett-test
+              name: wildcard-autheval-test
               namespace: envoy-gateway-system
             spec:
-              secretName: wildcard-kassett-test-tls
+              secretName: wildcard-autheval-test-tls
               dnsNames:
-                - "*.kassett.test"
+                - "*.autheval.test"
               issuerRef:
                 name: local-ca
                 kind: ClusterIssuer
@@ -127,12 +127,12 @@ releases:
                 - name: https
                   protocol: HTTPS
                   port: 443
-                  hostname: "*.kassett.test"
+                  hostname: "*.autheval.test"
                   tls:
                     mode: Terminate
                     certificateRefs:
                       - kind: Secret
-                        name: wildcard-kassett-test-tls
+                        name: wildcard-autheval-test-tls
                   allowedRoutes:
                     namespaces:
                       from: All
@@ -192,7 +192,7 @@ releases:
                 - name: edge
                   namespace: envoy-gateway-system
               hostnames:
-                - httpbin.kassett.test
+                - httpbin.autheval.test
               rules:
                 - matches:
                     - path:
