@@ -1,0 +1,24 @@
+architecture: standalone
+
+auth:
+  enablePostgresUser: true
+  postgresPassword: postgres
+  username: app
+  password: app
+  database: app
+
+primary:
+  service:
+    type: ClusterIP
+    ports:
+      postgresql: 5432
+
+  persistence:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
