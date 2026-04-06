@@ -16,21 +16,30 @@
 
       forAllSystems =
         f:
-        nixpkgs.lib.genAttrs systems
-          (system:
-            f {
-              pkgs = import nixpkgs {
-                inherit system;
-              };
+        nixpkgs.lib.genAttrs systems (
+          system:
+          let
+            pkgs = import nixpkgs {
               inherit system;
-            });
+              config = {
+                allowUnfreePredicate =
+                  pkg:
+                  builtins.elem (nixpkgs.lib.getName pkg) [
+                    "terraform"
+                  ];
+              };
+            };
+          in
+          f pkgs
+        );
     in
     {
-      devShells = forAllSystems ({ pkgs, system }: {
+      devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages =
             with pkgs;
             [
+              terraform
               (wrapHelm kubernetes-helm {
                 plugins = with kubernetes-helmPlugins; [
                   helm-diff
@@ -40,11 +49,11 @@
               kubectl
               helmfile
             ]
-            ++ lib.optionals pkgs.stdenv.isDarwin [
-              docker-client
+            ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.docker-client
             ]
-            ++ lib.optionals pkgs.stdenv.isLinux [
-              docker
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.docker
             ];
         };
       });
