@@ -21,8 +21,9 @@ k3d cluster create autheval \
   --agents 2 \
   -p "80:80@loadbalancer" \
   -p "443:443@loadbalancer" \
-  --k3s-arg "--disable=traefik@server:*"
-```
+  --k3s-arg "--disable=traefik@server:*" \
+  --volume "$PWD/bootstrap/coredns-custom.yaml:/var/lib/rancher/k3s/server/manifests/coredns-custom.yaml@server:0"
+  ```
 
 ### Bootstrap the local network
 

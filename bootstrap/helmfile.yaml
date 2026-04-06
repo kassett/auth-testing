@@ -29,6 +29,8 @@ releases:
           envoyGateway:
             provider:
               type: Kubernetes
+            extensionApis:
+              enableBackend: true
 
   - name: gateway-class
     namespace: envoy-gateway-system

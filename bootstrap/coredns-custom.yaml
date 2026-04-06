@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  autheval.override: |
+    rewrite stop {
+      name regex (.*\.autheval\.test) host.k3d.internal answer auto
+    }
