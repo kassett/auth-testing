@@ -1,0 +1,37 @@
+
+repositories:
+  - name: bedag
+    url: https://bedag.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+  atomic: true
+
+releases:
+  - name: raw
+    namespace: postgres
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: admin-password
+              namespace: postgres
+            data:
+              postgres-password: Wml0YWRlbFBhc3N3b3JkCg==
+
+  - name: postgres
+    namespace: postgres
+    chart: oci://registry-1.docker.io/cloudpirates/postgres
+    values:
+      - architecture: standalone
+        replicaCount: 1
+        auth:
+          username: zitadel
+          password: zitadel
+          database: zitadel
+          existingSecret: admin-password
