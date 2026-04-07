@@ -1,0 +1,76 @@
+repositories:
+  - name: zitadel
+    url: https://charts.zitadel.com
+  - name: bedag
+    url: https://bedag.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+  atomic: true
+
+releases:
+  - name: raw
+    namespace: postgres
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: admin-password
+              namespace: postgres
+            data:
+              postgres-password: Wml0YWRlbFBhc3N3b3JkCg==
+
+  - name: postgres
+    namespace: postgres
+    chart: oci://registry-1.docker.io/cloudpirates/postgres
+    values:
+      - architecture: standalone
+        replicaCount: 1
+        auth:
+          username: zitadel
+          password: zitadel
+          database: zitadel
+          existingSecret: admin-password
+
+  - name: zitadel
+    needs:
+      - postgres/postgres
+    namespace: zitadel
+    chart: zitadel/zitadel
+    values:
+      - zitadel:
+          masterkey: x123456789012345678901234567891y
+          configmapConfig:
+            ExternalDomain: zitadel.autheval.test
+            ExternalPort: 443
+            TLS:
+              Enabled: false
+            Database:
+              Postgres:
+                Host: postgres.postgres.svc.cluster.local
+                Port: 5432
+                Database: zitadel
+                MaxOpenConns: 20
+                MaxIdleConns: 10
+                MaxConnLifetime: 30m
+                MaxConnIdleTime: 5m
+                User:
+                  Username: zitadel
+                  Password: ZitadelPassword
+                  SSL:
+                    Mode: disable
+                Admin:
+                  Username: zitadel
+                  Password: ZitadelPassword
+                  SSL:
+                    Mode: disable
+        ingress:
+          enabled: false
+        login:
+          ingress:
+            enabled: false
