@@ -1,0 +1,106 @@
+repositories:
+  - name: zitadel
+    url: https://charts.zitadel.com
+  - name: bedag
+    url: https://bedag.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+  atomic: true
+
+releases:
+  - name: raw
+    namespace: postgres
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: admin-password
+              namespace: postgres
+            data:
+              postgres-password: Wml0YWRlbFBhc3N3b3JkCg==
+
+  - name: postgres
+    namespace: postgres
+    chart: oci://registry-1.docker.io/cloudpirates/postgres
+    values:
+      - architecture: standalone
+        replicaCount: 1
+        auth:
+          username: zitadel
+          password: zitadel
+          database: zitadel
+          existingSecret: admin-password
+
+  - name: zitadel
+    needs:
+      - postgres/postgres
+    namespace: zitadel
+    chart: zitadel/zitadel
+    values:
+      - zitadel:
+          masterkey: x123456789012345678901234567891y
+          configmapConfig:
+            ExternalDomain: zitadel.autheval.test
+            Database:
+              Postgres:
+                Host: postgres.postgres.svc.cluster.local
+                Port: 5432
+                Database: zitadel
+                MaxOpenConns: 20
+                MaxIdleConns: 10
+                MaxConnLifetime: 30m
+                MaxConnIdleTime: 5m
+                User:
+                  Username: zitadel
+                  Password: ZitadelPassword
+                  SSL:
+                    Mode: disable
+                Admin:
+                  Username: zitadel
+                  Password: ZitadelPassword
+                  SSL:
+                    Mode: disable
+        ingress:
+          enabled: false
+        login:
+          ingress:
+            enabled: false
+
+  - name: raw
+    namespace: zitadel
+    chart: bedag/raw
+    version: 2.0.0
+    values:
+      - resources:
+          - apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: zitadel-console
+              namespace:
+            spec:
+              parentRefs:
+                - name: edge
+                  namespace: envoy-gateway-system
+              hostnames:
+                - zitadel.autheval.test
+              rules:
+                - matches:
+                    - path:
+                        type: PathPrefix
+                        value: /ui/v2/login
+                  backendRefs:
+                    - name: zitadel-login
+                      port: 3000
+                - matches:
+                    - path:
+                        type: PathPrefix
+                        value: /
+                  backendRefs:
+                    - name: zitadel
+                      port: 8080
